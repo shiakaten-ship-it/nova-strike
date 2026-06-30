@@ -6,6 +6,8 @@
   <title>NOVA STRIKE — Neon Space Shooter</title>
   <meta name="description" content="NOVA STRIKE: 100+ ships, 100+ guns, infinite levels, roguelike upgrades." />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet" />
+  <!-- Poki SDK (required for Poki platform) -->
+  <script src="//game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     :root{--cy:#00f5ff;--pk:#ff006e;--pu:#8b5cf6;--gr:#39ff14;--or:#ff6b00;--ye:#ffe600;--bg:#020408;}
@@ -1010,10 +1012,20 @@ function startGame(){
   document.getElementById('cr-v').textContent='0';document.getElementById('boss-w').style.display='none';
   document.getElementById('upg-hud').innerHTML='';updateXPHUD();
   initPlayer();bullets=[];missiles=[];enemies=[];eBullets=[];particles=[];powerups=[];rings=[];
-  initStars();gameRunning=true;startWave();requestAnimationFrame(loop);
+  initStars();
+  // Poki: signal gameplay has started
+  if(typeof PokiSDK!=='undefined')PokiSDK.gameplayStart();
+  gameRunning=true;startWave();requestAnimationFrame(loop);
 }
 function gameOver(){
   gameRunning=false;
+  // Poki: stop gameplay, then show ad before result screen
+  if(typeof PokiSDK!=='undefined'){
+    PokiSDK.gameplayStop();
+    PokiSDK.commercialBreak().then(()=>_showResult()).catch(()=>_showResult());
+  } else { _showResult(); }
+}
+function _showResult(){
   if(score>highScore){highScore=score;localStorage.setItem('ns_hi',score);showToast('🏆 NEW HIGH SCORE!',C.ye);}
   document.getElementById('r-hi').textContent=`BEST: ${highScore.toLocaleString()}`;
   document.getElementById('r-t').textContent='SHIP DESTROYED';document.getElementById('r-t').style.color=C.pk;
@@ -1024,6 +1036,15 @@ function gameOver(){
 // Show hi score on start screen
 const _hs=parseInt(localStorage.getItem('ns_hi')||'0');
 if(_hs>0)document.getElementById('hi-s').textContent=`BEST: ${_hs.toLocaleString()}`;
+
+// Poki SDK init — fires when SDK is ready; game waits for it
+if(typeof PokiSDK!=='undefined'){
+  PokiSDK.init().then(()=>{
+    console.log('Poki SDK ready');
+  }).catch(()=>{
+    console.log('Poki SDK init failed — running standalone');
+  });
+}
 </script>
 </body>
 </html>
